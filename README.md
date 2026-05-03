@@ -2,7 +2,7 @@
 
 A lightweight, browser-based tool to convert images into a single PDF — no uploads, no server, no installs. Everything runs locally in your browser.
 
-🔗 **Live Demo:** [snap2pdf-sigma.vercel.app](https://snap2pdf-sigma.vercel.app)
+🔗 **Live Demo:** [snap2pdf-sigma.vercel.app](https://snap2doc.vercel.app)
 
 -----
 
