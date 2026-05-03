@@ -448,16 +448,19 @@ orientPort.addEventListener('click',()=>{
  * n = images per page → {cols, rows}
  */
 function getGrid(n, isLandscape){
-  if(isLandscape){
-    const m={
-      1:{c:1,r:1},2:{c:2,r:1},3:{c:3,r:1},4:{c:2,r:2},5:{c:3,r:2},6:{c:3,r:2},
-      7:{c:4,r:2},8:{c:4,r:2}
-    };
-    return m[n]||{c:4,r:2};
-  }
+  // All images are rotated to landscape (wide 16:9-ish).
+  // Grid chosen so cells are wider than tall — images fill them naturally.
+  // Portrait page (210×297): 2 cols fills width nicely for landscape images.
+  // Landscape page (297×210): 2 cols also works, cells are very wide.
   const m={
-    1:{c:1,r:1},2:{c:1,r:2},3:{c:1,r:3},4:{c:2,r:2},5:{c:2,r:3},6:{c:2,r:3},
-    7:{c:2,r:4},8:{c:2,r:4}
+    1:{c:1,r:1},
+    2:{c:1,r:2},
+    3:{c:1,r:3},
+    4:{c:2,r:2},
+    5:{c:2,r:3},
+    6:{c:2,r:3},
+    7:{c:2,r:4},
+    8:{c:2,r:4}
   };
   return m[n]||{c:2,r:4};
 }
@@ -472,7 +475,7 @@ cb.addEventListener('click',async()=>{
   const PH = landscape ? 210 : 297;
   const or = landscape ? 'l' : 'p';
   // ~5 screen px gutters @ 96dpi → mm (edge + between equal-sized cells)
-  const mg = (5 * 25.4) / 96;
+  const mg = 3; // 3mm margin — tight so images fill the page
   const MAX_PER_PAGE = 8;
   /** Raster clarity for JPEG placed in PDF */
   const PRINT_DPI = 200;
@@ -534,22 +537,24 @@ cb.addEventListener('click',async()=>{
       const ow = oriented.width;
       const oh = oriented.height;
 
-      /** Fit image inside cell without cropping ("contain" / letterbox). */
+      // The cell box size from the grid (equal divisions of page)
       const cellWmm = cw;
       const cellHmm = chAdj;
-      const srcAsp = ow / oh;
-      const destAsp = cellWmm / cellHmm;
+      const imgAsp = ow / oh;       // image aspect ratio (landscape, so > 1)
+      const cellAsp = cellWmm / cellHmm;
 
-      // Scale to fit entirely within the cell (no cropping, no zoom)
+      // Contain: scale image to fit fully inside cell, preserve aspect ratio — no crop, no zoom beyond 1:1
       let drawW, drawH;
-      if(srcAsp > destAsp){
+      if(imgAsp > cellAsp){
+        // Image wider than cell → constrain by width
         drawW = cellWmm;
-        drawH = cellWmm / srcAsp;
+        drawH = cellWmm / imgAsp;
       } else {
+        // Image taller than cell → constrain by height
         drawH = cellHmm;
-        drawW = cellHmm * srcAsp;
+        drawW = cellHmm * imgAsp;
       }
-      // Center within the cell
+      // Center the image within the cell
       const drawX = x + (cellWmm - drawW) / 2;
       const drawY = y + (cellHmm - drawH) / 2;
 
@@ -561,6 +566,7 @@ cb.addEventListener('click',async()=>{
       const octx = out.getContext('2d');
       octx.imageSmoothingEnabled = true;
       octx.imageSmoothingQuality = 'high';
+      // Draw full image into canvas at its natural size — no crop
       octx.drawImage(oriented, 0, 0, ow, oh, 0, 0, pxW, pxH);
       pdf.addImage(out.toDataURL('image/jpeg', 0.94), 'JPEG', drawX, drawY, drawW, drawH);
       await tick();
